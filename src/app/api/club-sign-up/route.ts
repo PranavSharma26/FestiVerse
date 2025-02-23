@@ -1,4 +1,4 @@
-import { User, UserModel } from "@/model/User";
+import { ClubModel } from "@/model/User";
 import dbConnect from "@/lib/dbConnect";
 import { sendVerificationEmail } from "@/helpers/sendVerificationEmail";
 import bcrypt from "bcryptjs";
@@ -6,98 +6,89 @@ import bcrypt from "bcryptjs";
 export async function POST(request: Request){
     await dbConnect()
     try {
-        const {username, email, college, password} = await request.json()
-
-        const existingUserVerifiedByUsername = await UserModel.findOne({
-            username,
+        const {clubname, email, college, password} = await request.json()
+        const existingClubByClubname = await ClubModel.findOne({
+            clubname,
             isVerified: true
         })
 
-        if(existingUserVerifiedByUsername){
+        if(existingClubByClubname){
             return Response.json(
                 {
-                    success: false,
-                    message: "Username already exist"
+                    success: false, 
+                    message: 'Club already exist'
                 },
-                {
-                    status: 400
-                }
+                { status: 400 }
             )
         }
 
-        const existingUserVerifiedByEmail = await UserModel.findOne({
+        const existingClubByEmail = await ClubModel.findOne({
             email
-        })        
+        })
 
         const verifyCode = Math.floor(100000 + Math.random()*900000).toString()
 
-        if(existingUserVerifiedByEmail){
-            if(existingUserVerifiedByEmail.isVerified){
+        if(existingClubByEmail){
+            if(existingClubByEmail.isVerified){
                 return Response.json(
                     {
-                        success: false,
-                        message: "User already exist"
+                        success: false, 
+                        message: 'Club already exist'
                     },
-                    {
-                        status: 400
-                    }
+                    { status: 400 }
                 )
             }
             else{
                 const hashedPassword = await bcrypt.hash(password,10)
-                existingUserVerifiedByEmail.password=hashedPassword
-                existingUserVerifiedByEmail.verifyCode=verifyCode
-                existingUserVerifiedByEmail.verifyCodeExpiry=new Date(Date.now()+3600000)
-                await existingUserVerifiedByEmail.save()
+                existingClubByEmail.password = hashedPassword
+                existingClubByEmail.verifyCode=verifyCode
+                existingClubByEmail.verifyCodeExpiry= new Date(Date.now()+3600000)
+                await existingClubByEmail.save()
             }
         }
         else{
             const hashedPassword = await bcrypt.hash(password,10)
             const expiryDate = new Date()
             expiryDate.setHours(expiryDate.getHours()+1)
-
-            const newUser = new UserModel({
-                username,
+            const newClub = new ClubModel({
+                clubname,
                 email,
                 password: hashedPassword,
-                college: college,
+                college,
                 verifyCode: verifyCode,
                 verifyCodeExpiry: expiryDate,
                 isVerified: false
             })
-            await newUser.save()
+            await newClub.save()
         }
-
-        const emailResponse = await sendVerificationEmail(email, username, verifyCode)
-
+        const emailResponse = await sendVerificationEmail(email, clubname, verifyCode)
         if(!emailResponse.success){
             return Response.json(
                 {
                     success: false,
-                    message: "Error sending verification email (user-sign-up route.ts)" 
+                    message: 'Error sending verification code'
                 },
                 {
-                    status: 500
+                    status: 400
                 }
             )
         }
-
         return Response.json(
             {
                 success: true,
-                message: "Email sent successfully" 
+                message: 'Verification Code Sent'
             },
             {
                 status: 200
             }
         )
 
-    } catch (err) {
-        console.error("Error in signing up. Error: ",err)
+    } catch (error) {
+        console.error("Error signing the Club (catch)", error)
         return Response.json(
             {
                 success: false,
-                message: "Error Signing up"
+                message: 'Error Signing up the club'
             },
             {
                 status: 500

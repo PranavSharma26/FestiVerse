@@ -5,7 +5,7 @@ import { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 
-export const authOptions: AuthOptions = {
+export const clubAuthOptions: AuthOptions = {
     providers:[
         CredentialsProvider({
             name: "Credentials",
@@ -48,9 +48,15 @@ export const authOptions: AuthOptions = {
             //     token.isVerified=user.isVerified
             //     token.clubname=user.clubname
             // }
+            if(user){
+                token.role="club"
+            }
             return token
         },
         async session({ session, token }) {
+            if(session.user){
+                session.user.role = token.role as "user"|"club"
+            }
             return session
         }
     },
